@@ -7,9 +7,12 @@
     1  Description
     2  Documentation
     3  Download & Installation
-    4  Filing Bugs
-    5  Copyright and License
-    6  Author
+    4  Versions
+    5  Filing Bugs
+    6  Copyright and License
+    7  Donations
+    8  Sincerely, thank you.
+    9  Author
 
 
 Description
@@ -58,16 +61,16 @@ Versions
 
 There are three versions
 
-- **Version 3** (`branch master
-  <http://github.com/beancount/beancount/tree/master>`_): The in-development
-  next version of Beancount since June 2020. This is unstable and you want to
-  use version 2 below. The scope of changes is described in `this document
-  <https://docs.google.com/document/d/1qPdNXaz5zuDQ8M9uoZFyyFis7hA0G55BEfhWhrVBsfc/>`_.
+- **Version 3** (`branch v3 <http://github.com/beancount/beancount/tree/v3>`_):
+  The current stable version of Beancount since June 2024. Use this. Note that
+  this version is trimmed down from v2 and most of the tools the v2 branch
+  included have been moved to their own independent projects on Github.
 
 - **Version 2** (`branch v2 <http://github.com/beancount/beancount/tree/v2>`_):
-  The current stable version of Beancount, in maintenance mode as of July 2020.
-  This was a complete rewrite of the first version, which introduced a number of
-  constraints and a new grammar and much more. Use this now.
+  The previous stable version of Beancount, in maintenance mode from 2020 until
+  2024 and now frozen and obsolete. This was a complete rewrite of the first
+  version, which introduced a number of constraints and a new grammar and much
+  more.
 
 - **Version 1** (`branch v1 <http://github.com/beancount/beancount/tree/v1>`_):
   The original version of Beancount. Development on this version halted in 2013.
@@ -86,10 +89,43 @@ Tickets can be filed at on the Github project page:
 Copyright and License
 =====================
 
-Copyright (C) 2007-2020  Martin Blais.  All Rights Reserved.
+Copyright (C) 2007-2024  Martin Blais.  All Rights Reserved.
 
 This code is distributed under the terms of the "GNU GPLv2 only".
 See COPYING file for details.
+
+
+Donations
+=========
+
+Beancount has found itself being useful to many users, companies, and
+foundations since I started it around 2007. I never ask for money, as my intent
+with this project is to build something that is useful to me first, as well as
+for others, in the simplest, most durable manner, and I believe in the genuinely
+free and open stance of Open Source software. Though its ends are utilitarian -
+it is about doing my own accounting in the first order - it is also a labor of
+love and I take great pride in it, pride which has pushed me to add the polish
+so that it would be usable and understandable by others. This is one of the rare
+areas of my software practice where I can let my desire for perfection and
+minimalism run untamed from the demands of time and external constraints.
+
+Many people have asked where they can donate for the project. If you would like
+to give back, you can send a donation via Wise (preferably):
+
+    https://wise.com/share/martinb4019
+
+or PayPal at:
+
+    https://www.paypal.com/paypalme/misislavski
+
+Your donation is always appreciated in any amount, and while the countless hours
+spent on building this project are impossible to match, the impact of each
+donation is much larger than its financial import. I truly appreciate every
+person who offers one; software can be a lonely endeavour, and those donations
+as well as words of appreciation keep reminding me of the positive impact my
+side projects can have on others. I feel gratitude for all users of Beancount.
+
+Thank you!
 
 
 Author

@@ -1,15 +1,14 @@
-__copyright__ = "Copyright (C) 2015-2016  Martin Blais"
+__copyright__ = "Copyright (C) 2014-2017, 2019, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import unittest
 
+from beancount import loader
 from beancount.parser import cmptest
 from beancount.plugins import auto_accounts
-from beancount import loader
 
 
 class TestAutoInsertOpen(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_auto_open(self, entries, _, options_map):
         """
@@ -23,7 +22,8 @@ class TestAutoInsertOpen(cmptest.TestCase):
         """
         new_entries, _ = auto_accounts.auto_insert_open(entries, options_map)
 
-        self.assertEqualEntries("""
+        self.assertEqualEntries(
+            """
 
         2014-02-01 open Assets:US:Bank:Checking
         2014-02-01 open Assets:US:Bank:Savings
@@ -38,8 +38,10 @@ class TestAutoInsertOpen(cmptest.TestCase):
           Assets:US:Bank:Checking     100 USD
           Equity:Something           -100 USD
 
-        """, new_entries)
+        """,
+            new_entries,
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

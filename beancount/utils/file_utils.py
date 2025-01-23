@@ -1,18 +1,15 @@
-"""File utilities.
-"""
-__copyright__ = "Copyright (C) 2014-2016  Martin Blais"
+"""File utilities."""
+
+__copyright__ = "Copyright (C) 2014-2018, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
-from os import path
-import contextlib
 import logging
 import os
 import time
+from os import path
 
 
-def find_files(fords,
-               ignore_dirs=('.hg', '.svn', '.git'),
-               ignore_files=('.DS_Store',)):
+def find_files(fords, ignore_dirs=(".hg", ".svn", ".git"), ignore_files=(".DS_Store",)):
     """Enumerate the files under the given directories, stably.
 
     Invalid file or directory names will be logged to the error log.
@@ -20,6 +17,7 @@ def find_files(fords,
     Args:
       fords: A list of strings, file or directory names.
       ignore_dirs: A list of strings, filenames or directories to be ignored.
+      ignore_files: a sequence of strings, filenames to be ignored
     Yields:
       Strings, full filenames from the given roots.
     """
@@ -45,16 +43,17 @@ def guess_file_format(filename, default=None):
 
     Args:
       filename: A string, the name of the file. This can be None.
+      default: default value if no known file extensions match.
     Returns:
       A string, the extension of the format, without a leading period.
     """
     if filename:
-        if filename.endswith('.txt') or filename.endswith('.text'):
-            format = 'text'
-        elif filename.endswith('.csv'):
-            format = 'csv'
-        elif filename.endswith('.html') or filename.endswith('.xhtml'):
-            format = 'html'
+        if filename.endswith(".txt") or filename.endswith(".text"):
+            format = "text"
+        elif filename.endswith(".csv"):
+            format = "csv"
+        elif filename.endswith(".html") or filename.endswith(".xhtml"):
+            format = "html"
         else:
             format = default
     else:
@@ -71,7 +70,7 @@ def path_greedy_split(filename):
       A pair of basename, extension (which includes the leading period).
     """
     basename = path.basename(filename)
-    index = basename.find('.')
+    index = basename.find(".")
     if index == -1:
         extension = None
     else:
@@ -90,30 +89,14 @@ def touch_file(filename, *otherfiles):
     # Note: You could set os.stat_float_times() but then the main function would
     # have to set that up as well. It doesn't help so much, however, since
     # filesystems tend to have low resolutions, e.g. one second.
-    orig_mtime_ns = max(os.stat(minfile).st_mtime_ns
-                        for minfile in (filename,) + otherfiles)
+    orig_mtime_ns = max(
+        os.stat(minfile).st_mtime_ns for minfile in (filename,) + otherfiles
+    )
     delay_secs = 0.05
     while True:
-        with open(filename, 'a'):
+        with open(filename, "a", encoding="utf-8"):
             os.utime(filename)
         time.sleep(delay_secs)
         new_stat = os.stat(filename)
         if new_stat.st_mtime_ns > orig_mtime_ns:
             break
-
-
-@contextlib.contextmanager
-def chdir(directory):
-    """Temporarily chdir to the given directory.
-
-    Args:
-      directory: The directory to switch do.
-    Returns:
-      A context manager which restores the cwd after running.
-    """
-    cwd = os.getcwd()
-    os.chdir(directory)
-    try:
-        yield cwd
-    finally:
-        os.chdir(cwd)

@@ -6,31 +6,38 @@ currency:
   (number, currency).
 
 """
-__copyright__ = "Copyright (C) 2013-2017  Martin Blais"
+
+from __future__ import annotations
+
+__copyright__ = "Copyright (C) 2013-2022, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import re
-
 from decimal import Decimal
-from typing import NamedTuple, Optional
+from typing import TYPE_CHECKING
+from typing import NamedTuple
+from typing import Optional
 
 from beancount.core.display_context import DEFAULT_FORMATTER
-from beancount.core.number import ZERO
 from beancount.core.number import MISSING
+from beancount.core.number import ZERO
 from beancount.core.number import D
+
+if TYPE_CHECKING:
+    from beancount.core.display_context import DisplayFormatter
 
 
 # A regular expression to match the name of a currency.
 # Note: This is kept in sync with "beancount/parser/lexer.l".
-CURRENCY_RE = ('|'.join([r'[A-Z][A-Z0-9\'\.\_\-]*[A-Z0-9]?\b',
-                         r'/[A-Z0-9\'\.\_\-]*[A-Z](?:[A-Z0-9\'\.\_\-]*[A-Z0-9])?']))
+CURRENCY_RE = "|".join(
+    [
+        r"[A-Z][A-Z0-9\'\.\_\-]*[A-Z0-9]?\b",
+        r"/[A-Z0-9\'\.\_\-]*[A-Z](?:[A-Z0-9\'\.\_\-]*[A-Z0-9])?",
+    ]
+)
 
 
-_Amount = NamedTuple('_Amount', [
-    ('number', Optional[Decimal]),
-    ('currency', str)])
-
-class Amount(_Amount):
+class Amount(NamedTuple("Amount", [("number", Optional[Decimal]), ("currency", str)])):
     """An 'Amount' represents a number of a particular unit of something.
 
     It's essentially a typed number, with corresponding manipulation operations
@@ -42,7 +49,7 @@ class Amount(_Amount):
     valid_types_number = (Decimal, type, type(None))
     valid_types_currency = (str, type, type(None))
 
-    def __new__(cls, number, currency):
+    def __new__(cls, number: Decimal, currency: str) -> Amount:
         """Constructor from a number and currency.
 
         Args:
@@ -51,9 +58,9 @@ class Amount(_Amount):
         """
         assert isinstance(number, Amount.valid_types_number), repr(number)
         assert isinstance(currency, Amount.valid_types_currency), repr(currency)
-        return _Amount.__new__(cls, number, currency)
+        return super().__new__(cls, number, currency)
 
-    def to_string(self, dformat=DEFAULT_FORMATTER):
+    def to_string(self, dformat: DisplayFormatter = DEFAULT_FORMATTER) -> str:
         """Convert an Amount instance to a printable string.
 
         Args:
@@ -64,12 +71,12 @@ class Amount(_Amount):
         if isinstance(self.number, Decimal):
             number_fmt = dformat.format(self.number, self.currency)
         elif self.number is MISSING:
-            number_fmt = ''
+            number_fmt = ""
         else:
             number_fmt = str(self.number)
         return "{} {}".format(number_fmt, self.currency)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Convert an Amount instance to a printable string with the defaults.
 
         Returns:
@@ -79,7 +86,7 @@ class Amount(_Amount):
 
     __repr__ = __str__
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         """Boolean predicate returns true if the number is non-zero.
         Returns:
           A boolean, true if non-zero number.
@@ -111,15 +118,18 @@ class Amount(_Amount):
         """
         return hash((self.number, self.currency))
 
-    def __neg__(self):
+    def __neg__(self) -> Amount:
         """Return the negative of this amount.
         Returns:
           A new instance of Amount, with the negative number of units.
         """
+        assert isinstance(
+            self.number, Decimal
+        ), "Amount's number is not a Decimal instance: {}".format(self.number)
         return Amount(-self.number, self.currency)
 
     @staticmethod
-    def from_string(string):
+    def from_string(string: str) -> Amount:
         """Create an amount from a string.
 
         This is a miniature parser used for building tests.
@@ -129,8 +139,9 @@ class Amount(_Amount):
         Returns:
           A new instance of Amount.
         """
-        match = re.match(r'\s*([-+]?[0-9.]+)\s+({currency})'.format(currency=CURRENCY_RE),
-                         string)
+        match = re.match(
+            r"\s*([-+]?[0-9.]+)\s+({currency})".format(currency=CURRENCY_RE), string
+        )
         if not match:
             raise ValueError("Invalid string for amount: '{}'".format(string))
         number, currency = match.group(1, 2)
@@ -142,7 +153,8 @@ class Amount(_Amount):
 # objects with functions instead of objects with methods... alright, this is
 # okay.
 
-def sortkey(amount):
+
+def sortkey(amount: Amount) -> tuple[str, Decimal | None]:
     """A comparison function that sorts by currency first.
 
     Args:
@@ -152,7 +164,8 @@ def sortkey(amount):
     """
     return (amount.currency, amount.number)
 
-def mul(amount, number):
+
+def mul(amount: Amount, number: Decimal) -> Amount:
     """Multiply the given amount by a number.
 
     Args:
@@ -161,13 +174,16 @@ def mul(amount, number):
     Returns:
       An Amount, with the same currency, but with 'number' times units.
     """
-    assert isinstance(amount.number, Decimal), (
-        "Amount's number is not a Decimal instance: {}".format(amount.number))
-    assert isinstance(number, Decimal), (
-        "Number is not a Decimal instance: {}".format(number))
+    assert isinstance(
+        amount.number, Decimal
+    ), "Amount's number is not a Decimal instance: {}".format(amount.number)
+    assert isinstance(number, Decimal), "Number is not a Decimal instance: {}".format(
+        number
+    )
     return Amount(amount.number * number, amount.currency)
 
-def div(amount, number):
+
+def div(amount: Amount, number: Decimal) -> Amount:
     """Divide the given amount by a number.
 
     Args:
@@ -176,13 +192,16 @@ def div(amount, number):
     Returns:
       An Amount, with the same currency, but with amount units divided by 'number'.
     """
-    assert isinstance(amount.number, Decimal), (
-        "Amount's number is not a Decimal instance: {}".format(amount.number))
-    assert isinstance(number, Decimal), (
-        "Number is not a Decimal instance: {}".format(number))
+    assert isinstance(
+        amount.number, Decimal
+    ), "Amount's number is not a Decimal instance: {}".format(amount.number)
+    assert isinstance(number, Decimal), "Number is not a Decimal instance: {}".format(
+        number
+    )
     return Amount(amount.number / number, amount.currency)
 
-def add(amount1, amount2):
+
+def add(amount1: Amount, amount2: Amount) -> Amount:
     """Add the given amounts with the same currency.
 
     Args:
@@ -192,17 +211,20 @@ def add(amount1, amount2):
       An instance of Amount, with the sum the two amount's numbers, in the same
       currency.
     """
-    assert isinstance(amount1.number, Decimal), (
-        "Amount1's number is not a Decimal instance: {}".format(amount1.number))
-    assert isinstance(amount2.number, Decimal), (
-        "Amount2's number is not a Decimal instance: {}".format(amount2.number))
+    assert isinstance(
+        amount1.number, Decimal
+    ), "Amount1's number is not a Decimal instance: {}".format(amount1.number)
+    assert isinstance(
+        amount2.number, Decimal
+    ), "Amount2's number is not a Decimal instance: {}".format(amount2.number)
     if amount1.currency != amount2.currency:
         raise ValueError(
-            "Unmatching currencies for operation on {} and {}".format(
-                amount1, amount2))
+            "Unmatching currencies for operation on {} and {}".format(amount1, amount2)
+        )
     return Amount(amount1.number + amount2.number, amount1.currency)
 
-def sub(amount1, amount2):
+
+def sub(amount1: Amount, amount2: Amount) -> Amount:
     """Subtract the given amounts with the same currency.
 
     Args:
@@ -212,17 +234,20 @@ def sub(amount1, amount2):
       An instance of Amount, with the difference between the two amount's
       numbers, in the same currency.
     """
-    assert isinstance(amount1.number, Decimal), (
-        "Amount1's number is not a Decimal instance: {}".format(amount1.number))
-    assert isinstance(amount2.number, Decimal), (
-        "Amount2's number is not a Decimal instance: {}".format(amount2.number))
+    assert isinstance(
+        amount1.number, Decimal
+    ), "Amount1's number is not a Decimal instance: {}".format(amount1.number)
+    assert isinstance(
+        amount2.number, Decimal
+    ), "Amount2's number is not a Decimal instance: {}".format(amount2.number)
     if amount1.currency != amount2.currency:
         raise ValueError(
-            "Unmatching currencies for operation on {} and {}".format(
-                amount1, amount2))
+            "Unmatching currencies for operation on {} and {}".format(amount1, amount2)
+        )
     return Amount(amount1.number - amount2.number, amount1.currency)
 
-def abs(amount):
+
+def abs(amount: Amount) -> Amount:
     """Return the absolute value of the given amount.
 
     Args:
@@ -230,10 +255,10 @@ def abs(amount):
     Returns:
       An instance of Amount.
     """
-    return (amount
-            if amount.number >= ZERO
-            else Amount(-amount.number, amount.currency))
+    assert isinstance(
+        amount.number, Decimal
+    ), "Amount's number is not a Decimal instance: {}".format(amount.number)
+    return amount if amount.number >= ZERO else Amount(-amount.number, amount.currency)
 
 
 A = from_string = Amount.from_string
-NULL_AMOUNT = Amount(ZERO, '')

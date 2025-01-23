@@ -18,16 +18,17 @@ postings due to duck-typing.
 Function named ``get_*()`` are used to compute values from postings to their price currency.
 Functions named ``convert_*()`` are used to convert postings and amounts to any currency.
 """
-__copyright__ = "Copyright (C) 2013-2017  Martin Blais"
+
+__copyright__ = "Copyright (C) 2013-2017, 2019-2021, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 from decimal import Decimal
 
-from beancount.core.number import MISSING
+from beancount.core import prices
 from beancount.core.amount import Amount
+from beancount.core.number import MISSING
 from beancount.core.position import Cost
 from beancount.core.position import Position
-from beancount.core import prices
 
 
 def get_units(pos):
@@ -38,7 +39,7 @@ def get_units(pos):
     Returns:
       An Amount.
     """
-    assert isinstance(pos, Position) or type(pos).__name__ == 'Posting'
+    assert isinstance(pos, Position) or type(pos).__name__ == "Posting"
     return pos.units
 
 
@@ -50,11 +51,13 @@ def get_cost(pos):
     Returns:
       An Amount.
     """
-    assert isinstance(pos, Position) or type(pos).__name__ == 'Posting'
+    assert isinstance(pos, Position) or type(pos).__name__ == "Posting"
     cost = pos.cost
-    return (Amount(cost.number * pos.units.number, cost.currency)
-            if (isinstance(cost, Cost) and isinstance(cost.number, Decimal))
-            else pos.units)
+    return (
+        Amount(cost.number * pos.units.number, cost.currency)
+        if (isinstance(cost, Cost) and isinstance(cost.number, Decimal))
+        else pos.units
+    )
 
 
 def get_weight(pos):
@@ -78,7 +81,7 @@ def get_weight(pos):
     Returns:
       An Amount.
     """
-    assert isinstance(pos, Position) or type(pos).__name__ == 'Posting'
+    assert isinstance(pos, Position) or type(pos).__name__ == "Posting"
     units = pos.units
     cost = pos.cost
 
@@ -109,7 +112,7 @@ def get_value(pos, price_map, date=None, output_date_prices=None):
     Note that if the position is not held at cost, this does not convert
     anything, even if a price is available in the 'price_map'. We don't specify
     a target currency here. If you're attempting to make such a conversion, see
-    ``convert_*()`` functions below. However, is the object is a posting and it
+    ``convert_*()`` functions below. However, if the object is a posting and it
     has a price, we will use that price to infer the target currency and those
     will be converted.
 
@@ -129,15 +132,16 @@ def get_value(pos, price_map, date=None, output_date_prices=None):
       position if you need to check for success.
 
     """
-    assert isinstance(pos, Position) or type(pos).__name__ == 'Posting'
+    assert isinstance(pos, Position) or type(pos).__name__ == "Posting"
     units = pos.units
     cost = pos.cost
 
     # Try to infer what the cost/price currency should be.
     value_currency = (
-        (isinstance(cost, Cost) and cost.currency) or
-        (hasattr(pos, 'price') and pos.price and pos.price.currency) or
-        None)
+        (isinstance(cost, Cost) and cost.currency)
+        or (hasattr(pos, "price") and pos.price and pos.price.currency)
+        or None
+    )
 
     if isinstance(value_currency, str):
         # We have a value currency; hit the price database.
@@ -174,11 +178,13 @@ def convert_position(pos, target_currency, price_map, date=None):
     """
     cost = pos.cost
     value_currency = (
-        (isinstance(cost, Cost) and cost.currency) or
-        (hasattr(pos, 'price') and pos.price and pos.price.currency) or
-        None)
-    return convert_amount(pos.units, target_currency, price_map,
-                          date=date, via=(value_currency,))
+        (isinstance(cost, Cost) and cost.currency)
+        or (hasattr(pos, "price") and pos.price and pos.price.currency)
+        or None
+    )
+    return convert_amount(
+        pos.units, target_currency, price_map, date=date, via=(value_currency,)
+    )
 
 
 def convert_amount(amt, target_currency, price_map, date=None, via=None):

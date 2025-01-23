@@ -1,16 +1,15 @@
-__copyright__ = "Copyright (C) 2016  Martin Blais"
+__copyright__ = "Copyright (C) 2016-2017, 2019, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import datetime
 import unittest
 
+from beancount import loader
 from beancount.parser import cmptest
 from beancount.plugins import coherent_cost
-from beancount import loader
 
 
 class TestValidateUnusedAccounts(cmptest.TestCase):
-
     @loader.load_doc()
     def test_validate_unused_accounts(self, entries, in_errors, options_map):
         """
@@ -34,9 +33,9 @@ class TestValidateUnusedAccounts(cmptest.TestCase):
         """
         _, errors = coherent_cost.validate_coherent_cost(entries, options_map)
         self.assertEqual(1, len(errors))
-        self.assertRegex(errors[0].message, r'\bHOOL\b')
+        self.assertRegex(errors[0].message, r"\bHOOL\b")
         self.assertEqual(datetime.date(2014, 2, 1), errors[0].entry.date)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

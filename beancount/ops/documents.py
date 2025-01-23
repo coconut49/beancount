@@ -1,22 +1,35 @@
-"""Everything that relates to creating the Document directives.
-"""
-__copyright__ = "Copyright (C) 2014-2016  Martin Blais"
+"""Everything that relates to creating the Document directives."""
+
+from __future__ import annotations
+
+__copyright__ = "Copyright (C) 2013-2018, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
-import re
 import datetime
+import re
 from os import path
-from collections import namedtuple
+from typing import NamedTuple
 
 from beancount.core import account
 from beancount.core import data
 from beancount.core import getters
 
-__plugins__ = ('process_documents', 'verify_document_files_exist')
+__plugins__ = ("process_documents", "verify_document_files_exist")
 
 
 # An error from trying to find the documents.
-DocumentError = namedtuple('DocumentError', 'source message entry')
+class DocumentError(NamedTuple):
+    """Error encountered during document processing.
+
+    Attributes:
+        source: Source metadata for the error
+        message: Error message string
+        entry: The related entry that caused the error
+    """
+
+    source: data.Meta
+    message: str
+    entry: data.Document | None
 
 
 def process_documents(entries, options_map):
@@ -36,7 +49,7 @@ def process_documents(entries, options_map):
     # Detect filenames that should convert into entries.
     autodoc_entries = []
     autodoc_errors = []
-    document_dirs = options_map['documents']
+    document_dirs = options_map["documents"]
     if document_dirs:
         # Restrict to the list of valid accounts only.
         accounts = getters.get_accounts(entries)
@@ -69,9 +82,10 @@ def verify_document_files_exist(entries, unused_options_map):
             continue
         if not path.exists(entry.filename):
             errors.append(
-                DocumentError(entry.meta,
-                              'File does not exist: "{}"'.format(entry.filename),
-                              entry))
+                DocumentError(
+                    entry.meta, 'File does not exist: "{}"'.format(entry.filename), entry
+                )
+            )
     return entries, errors
 
 
@@ -100,40 +114,49 @@ def find_documents(directory, input_filename, accounts_only=None, strict=False):
     # file itself.
     if not path.isabs(directory):
         input_directory = path.dirname(input_filename)
-        directory = path.abspath(path.normpath(path.join(input_directory,
-                                                         directory)))
+        directory = path.abspath(path.normpath(path.join(input_directory, directory)))
 
     # If the directory does not exist, just generate an error and return.
     if not path.exists(directory):
         meta = data.new_metadata(input_filename, 0)
         error = DocumentError(
-            meta, "Document root '{}' does not exist".format(directory), None)
+            meta, "Document root '{}' does not exist".format(directory), None
+        )
         return ([], [error])
 
     # Walk the hierarchy of files.
     entries = []
     for root, account_name, dirs, files in account.walk(directory):
-
         # Look for files that have a dated filename.
         for filename in files:
-            match = re.match(r'(\d\d\d\d)-(\d\d)-(\d\d).(.*)', filename)
+            match = re.match(r"(\d\d\d\d)-(\d\d)-(\d\d).(.*)", filename)
             if not match:
                 continue
 
             # If a restricting set of accounts was specified, skip document
             # directives found in accounts with no corresponding account name.
-            if accounts_only is not None and not account_name in accounts_only:
+            if accounts_only is not None and account_name not in accounts_only:
                 if strict:
                     if any(account_name.startswith(account) for account in accounts_only):
-                        errors.append(DocumentError(
-                            data.new_metadata(input_filename, 0),
-                            "Document '{}' found in child account {}".format(
-                                filename, account_name), None))
+                        errors.append(
+                            DocumentError(
+                                data.new_metadata(input_filename, 0),
+                                "Document '{}' found in child account {}".format(
+                                    filename, account_name
+                                ),
+                                None,
+                            )
+                        )
                     elif any(account.startswith(account_name) for account in accounts_only):
-                        errors.append(DocumentError(
-                            data.new_metadata(input_filename, 0),
-                            "Document '{}' found in parent account {}".format(
-                                filename, account_name), None))
+                        errors.append(
+                            DocumentError(
+                                data.new_metadata(input_filename, 0),
+                                "Document '{}' found in parent account {}".format(
+                                    filename, account_name
+                                ),
+                                None,
+                            )
+                        )
                 continue
 
             # Create a new directive.
@@ -141,13 +164,22 @@ def find_documents(directory, input_filename, accounts_only=None, strict=False):
             try:
                 date = datetime.date(*map(int, match.group(1, 2, 3)))
             except ValueError as exc:
-                errors.append(DocumentError(
-                    data.new_metadata(input_filename, 0),
-                    "Invalid date on document file '{}': {}".format(
-                        filename, exc), None))
+                errors.append(
+                    DocumentError(
+                        data.new_metadata(input_filename, 0),
+                        "Invalid date on document file '{}': {}".format(filename, exc),
+                        None,
+                    )
+                )
             else:
-                entry = data.Document(meta, date, account_name, path.join(root, filename),
-                                      data.EMPTY_SET, data.EMPTY_SET)
+                entry = data.Document(
+                    meta,
+                    date,
+                    account_name,
+                    path.join(root, filename),
+                    data.EMPTY_SET,
+                    data.EMPTY_SET,
+                )
                 entries.append(entry)
 
     return (entries, errors)

@@ -57,7 +57,10 @@ Here are all the aspects supported by this module:
   files, and these need to be accommodated when aligning to the right.
 
 """
-__copyright__ = "Copyright (C) 2014-2016  Martin Blais"
+
+from __future__ import annotations
+
+__copyright__ = "Copyright (C) 2014-2017, 2019-2021, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import collections
@@ -65,18 +68,25 @@ import decimal
 import enum
 import io
 from decimal import Decimal
+from typing import TYPE_CHECKING
+from typing import Any
 
 from beancount.core import distribution
+
+if TYPE_CHECKING:
+    from beancount.core.data import Currency
 
 
 class Precision(enum.Enum):
     """The type of precision required."""
+
     MOST_COMMON = 1
     MAXIMUM = 2
 
 
 class Align(enum.Enum):
     """Alignment style for numbers."""
+
     NATURAL = 1
     DOT = 2
     RIGHT = 3
@@ -96,44 +106,49 @@ class _CurrencyContext:
       fractional_dist: A frequency distribution of fractionals seen in the input file.
 
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         self.has_sign = False
         self.integer_max = 1
         self.fractional_dist = distribution.Distribution()
 
-    def __str__(self):
-        fmt = ('sign={:<2}  integer_max={:<2}  '
-               'fractional_common={:<2}  fractional_max={:<2}  '
-               '"{}" "{}"')
+    def __str__(self) -> str:
+        fmt = (
+            "sign={:<2}  integer_max={:<2}  "
+            "fractional_common={:<2}  fractional_max={:<2}  "
+            '"{}" "{}"'
+        )
         dist = self.fractional_dist
 
-        example = ''
+        example = ""
         if self.has_sign:
-            example += '-'
-        example += '0' * self.integer_max
+            example += "-"
+        example += "0" * self.integer_max
 
         example_common = example
         fractional_common = self.get_fractional(Precision.MOST_COMMON)
         if fractional_common is None:
-            example_common = example + '.*'
+            example_common = example + ".*"
         elif fractional_common > 0:
-            example_common = example + '.' + ('0' * fractional_common)
+            example_common = example + "." + ("0" * fractional_common)
 
         example_max = example
         fractional_max = self.get_fractional(Precision.MAXIMUM)
         if fractional_max is None:
-            example_max = example + '.*'
+            example_max = example + ".*"
         elif fractional_max > 0:
-            example_max = example + '.' + ('0' * fractional_max)
+            example_max = example + "." + ("0" * fractional_max)
 
         return fmt.format(
             int(self.has_sign),
             self.integer_max,
-            '_' if dist.empty() else dist.mode(),
-            '_' if dist.empty() else dist.max(),
-            example_common, example_max)
+            "_" if dist.empty() else dist.mode(),
+            "_" if dist.empty() else dist.max(),
+            example_common,
+            example_max,
+        )
 
-    def update(self, number):
+    def update(self, number: Decimal) -> None:
         # Note: Please do care for the performance of this routine. This is run
         # on a large set of numbers, possibly even during parsing. Consider
         # reimplementing this in C, after profiling.
@@ -147,13 +162,18 @@ class _CurrencyContext:
             self.has_sign = True
 
         # Update the precision.
-        self.fractional_dist.update(-num_tuple.exponent)
+        self.fractional_dist.update(-num_tuple.exponent)  # type: ignore[operator]
 
         # Update the maximum number of integral digits.
-        integer_digits = len(num_tuple.digits) + num_tuple.exponent
+        integer_digits = len(num_tuple.digits) + num_tuple.exponent  # type: ignore[operator]
         self.integer_max = max(self.integer_max, integer_digits)
 
-    def get_fractional(self, precision):
+    def update_from(self, other: _CurrencyContext) -> None:
+        self.has_sign = self.has_sign or other.has_sign
+        self.fractional_dist.update_from(other.fractional_dist)
+        self.integer_max = max(self.integer_max, other.integer_max)
+
+    def get_fractional(self, precision: Precision) -> int | None:
         """
         Returns:
           An integer for the number of fractional digits, or None.
@@ -176,23 +196,24 @@ class DisplayContext:
       commas: A bool, true if we should render commas. This just gets propagated
         onwards as the default value of to build with.
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         self.ccontexts = collections.defaultdict(_CurrencyContext)
-        self.ccontexts['__default__'] = _CurrencyContext()
+        self.ccontexts["__default__"] = _CurrencyContext()
         self.commas = False
 
-    def set_commas(self, commas):
+    def set_commas(self, commas: bool) -> None:
         """Set the default value for rendering commas."""
         self.commas = commas
 
-    def __str__(self):
+    def __str__(self) -> str:
         oss = io.StringIO()
-        linefmt = '{:16}: {}\n'
+        linefmt = "{:16}: {}\n"
         for currency, ccontext in sorted(self.ccontexts.items()):
             oss.write(linefmt.format(currency, ccontext))
         return oss.getvalue()
 
-    def update(self, number, currency='__default__'):
+    def update(self, number: Decimal, currency: Currency = "__default__"):
         """Update the builder with the given number for the given currency.
 
         Args:
@@ -201,7 +222,21 @@ class DisplayContext:
         """
         self.ccontexts[currency].update(number)
 
-    def quantize(self, number, currency, precision=Precision.MOST_COMMON):
+    def update_from(self, other: DisplayContext) -> None:
+        """Update the builder with the other given DisplayContext.
+
+        Args:
+          other: Another DisplayContext.
+        """
+        for currency, ccontext in other.ccontexts.items():
+            self.ccontexts[currency].update_from(ccontext)
+
+    def quantize(
+        self,
+        number: Decimal,
+        currency: Currency,
+        precision: Precision = Precision.MOST_COMMON,
+    ) -> Decimal:
         """Quantize the given number to the given precision.
 
         Args:
@@ -228,11 +263,13 @@ class DisplayContext:
             ctx.prec = num_fractional_digits + 9
             return number.quantize(qdigit)
 
-    def build(self,
-              alignment=Align.NATURAL,
-              precision=Precision.MOST_COMMON,
-              commas=None,
-              reserved=0):
+    def build(
+        self,
+        alignment: Align = Align.NATURAL,
+        precision: Precision = Precision.MOST_COMMON,
+        commas: bool | None = None,
+        reserved: int = 0,
+    ) -> DisplayFormatter:
         """Build a formatter for the given display context.
 
         Args:
@@ -258,15 +295,16 @@ class DisplayContext:
         return DisplayFormatter(self, precision, fmtstrings)
 
     def _build_natural(self, precision, commas, unused_reserved):
-        comma_str = ',' if commas else ''
+        comma_str = "," if commas else ""
         fmtstrings = {}
         for currency, ccontext in self.ccontexts.items():
             num_fractional_digits = ccontext.get_fractional(precision)
-            fmtfmt = ('{{:{comma}f}}'
-                      if num_fractional_digits is None
-                      else '{{:{comma}.{frac}f}}')
-            fmtstrings[currency] = fmtfmt.format(comma=comma_str,
-                                                 frac=num_fractional_digits)
+            fmtfmt = (
+                "{{:{comma}f}}" if num_fractional_digits is None else "{{:{comma}.{frac}f}}"
+            )
+            fmtstrings[currency] = fmtfmt.format(
+                comma=comma_str, frac=num_fractional_digits
+            )
         return fmtstrings
 
     def _build_right(self, precision, commas, reserved):
@@ -288,16 +326,18 @@ class DisplayContext:
         max_width = max(max_digits_list) + reserved
 
         # Compute the format strings.
-        comma_str = ',' if commas else ''
+        comma_str = "," if commas else ""
         fmtstrings = {}
         for currency, ccontext in self.ccontexts.items():
             num_fractional_digits = ccontext.get_fractional(precision)
-            fmtfmt = ('{{:{width}{comma}}}'
-                      if num_fractional_digits is None
-                      else '{{:{width}{comma}.{frac}f}}')
-            fmtstrings[currency] = fmtfmt.format(comma=comma_str,
-                                                 width=max_width,
-                                                 frac=num_fractional_digits)
+            fmtfmt = (
+                "{{:{width}{comma}}}"
+                if num_fractional_digits is None
+                else "{{:{width}{comma}.{frac}f}}"
+            )
+            fmtstrings[currency] = fmtfmt.format(
+                comma=comma_str, width=max_width, frac=num_fractional_digits
+            )
         return fmtstrings
 
     DEFAULT_UNINITIALIZED_PRECISION = 8
@@ -329,8 +369,8 @@ class DisplayContext:
         max_width = sum([max_sign, max_integer, max_period, max_fractional]) + reserved
 
         # Compute the format strings.
-        comma_str = ',' if commas else ''
-        sign_str = ' ' if max_sign else ''
+        comma_str = "," if commas else ""
+        sign_str = " " if max_sign else ""
         fmtstrings = {}
         for currency, ccontext in self.ccontexts.items():
             num_fractional_digits = ccontext.get_fractional(precision)
@@ -339,11 +379,13 @@ class DisplayContext:
             len_padding = max_fractional - num_fractional_digits
             if max_fractional > 0 and num_fractional_digits == 0:
                 len_padding += 1
-            fmtfmt = '{{:{sign}{width}{comma}.{frac}f}}' + (' ' * len_padding)
-            fmtstrings[currency] = fmtfmt.format(sign=sign_str,
-                                                 comma=comma_str,
-                                                 width=max_width - len_padding,
-                                                 frac=num_fractional_digits)
+            fmtfmt = "{{:{sign}{width}{comma}.{frac}f}}" + (" " * len_padding)
+            fmtstrings[currency] = fmtfmt.format(
+                sign=sign_str,
+                comma=comma_str,
+                width=max_width - len_padding,
+                frac=num_fractional_digits,
+            )
         return fmtstrings
 
 
@@ -359,24 +401,26 @@ class DisplayFormatter:
       fmtstrings: A dict of currency to pre-baked format strings for it.
       fmtfuncs: A dict of currency to pre-baked formatting functions for it.
     """
-    def __init__(self, dcontext, precision, fmtstrings):
+
+    def __init__(
+        self, dcontext: DisplayContext, precision: Precision, fmtstrings: dict[str, Any]
+    ) -> None:
         self.dcontext = dcontext
         self.precision = precision
         self.fmtstrings = fmtstrings
-        self.fmtfuncs = {currency: fmtstr.format
-                         for currency, fmtstr in fmtstrings.items()}
+        self.fmtfuncs = {currency: fmtstr.format for currency, fmtstr in fmtstrings.items()}
 
-    def __str__(self):
-        return 'DisplayFormatter({})'.format(self.fmtstrings)
+    def __str__(self) -> str:
+        return "DisplayFormatter({})".format(self.fmtstrings)
 
-    def format(self, number, currency='__default__'):
+    def format(self, number: Decimal, currency: Currency = "__default__") -> str:
         try:
             func = self.fmtfuncs[currency]
         except KeyError:
-            func = self.fmtfuncs['__default__']
+            func = self.fmtfuncs["__default__"]
         return func(number)
 
-    def quantize(self, number, currency='__default__'):
+    def quantize(self, number: Decimal, currency: Currency = "__default__") -> Decimal:
         return self.dcontext.quantize(number, currency, self.precision)
 
     __call__ = format

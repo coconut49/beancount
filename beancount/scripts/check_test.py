@@ -1,15 +1,15 @@
-__copyright__ = "Copyright (C) 2014, 2016  Martin Blais"
+__copyright__ = "Copyright (C) 2014, 2016-2017, 2019, 2021, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import unittest
+
 import click.testing
 
-from beancount.utils import test_utils
 from beancount.scripts import check
+from beancount.utils import test_utils
 
 
 class TestScriptCheck(test_utils.ClickTestCase):
-
     @test_utils.docfile
     def test_success(self, filename):
         """
@@ -55,10 +55,10 @@ class TestScriptCheck(test_utils.ClickTestCase):
         # message on result.stderr, but it does not work. See
         # https://github.com/pallets/click/issues/1761
         runner = click.testing.CliRunner()
-        result = runner.invoke(check.main, ['--auto', filename])
+        result = runner.invoke(check.main, ["--auto", filename])
         self.assertEqual(result.exit_code, 0)
         self.assertEqual("", result.output.strip())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

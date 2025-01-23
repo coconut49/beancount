@@ -1,20 +1,19 @@
-__copyright__ = "Copyright (C) 2014-2016  Martin Blais"
+__copyright__ = "Copyright (C) 2014-2017, 2019, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import unittest
 
+from beancount import loader
 from beancount.core import compare
 from beancount.parser import cmptest
 from beancount.plugins import noduplicates
-from beancount import loader
 
 
 class TestValidateDuplicates(cmptest.TestCase):
-
     def checkDuplicates(self, entries, options_map):
         _, valid_errors = noduplicates.validate_no_duplicates(entries, options_map)
         self.assertEqual([compare.CompareError], list(map(type, valid_errors)))
-        self.assertRegex(valid_errors[0].message, 'Duplicate entry')
+        self.assertRegex(valid_errors[0].message, "Duplicate entry")
 
     # Note: validation already checks for dups in open/close.
     @loader.load_doc(expect_errors=True)
@@ -115,5 +114,5 @@ class TestValidateDuplicates(cmptest.TestCase):
         self.assertEqual([], list(map(type, valid_errors)))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

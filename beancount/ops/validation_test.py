@@ -1,18 +1,19 @@
-__copyright__ = "Copyright (C) 2014-2016  Martin Blais"
+__copyright__ = "Copyright (C) 2013-2017, 2019-2020, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import datetime
+import os
 import re
+import tempfile
 import unittest
 
-from beancount.core import data
-from beancount.parser import cmptest
-from beancount.ops import validation
 from beancount import loader
+from beancount.core import data
+from beancount.ops import validation
+from beancount.parser import cmptest
 
 
 class TestValidateOpenClose(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate_open_close__duplicate_open(self, entries, _, options_map):
         """
@@ -28,9 +29,10 @@ class TestValidateOpenClose(cmptest.TestCase):
         2014-02-21 open  Assets:US:Bank:Checking3
         """
         errors = validation.validate_open_close(entries, options_map)
-        self.assertEqual(['Assets:US:Bank:Checking2',
-                          'Assets:US:Bank:Checking3'],
-                         [error.entry.account for error in errors])
+        self.assertEqual(
+            ["Assets:US:Bank:Checking2", "Assets:US:Bank:Checking3"],
+            [error.entry.account for error in errors],
+        )
 
     @loader.load_doc(expect_errors=True)
     def test_validate_open_close__duplicate_close(self, entries, _, options_map):
@@ -52,9 +54,10 @@ class TestValidateOpenClose(cmptest.TestCase):
 
         """
         errors = validation.validate_open_close(entries, options_map)
-        self.assertEqual(['Assets:US:Bank:Checking2',
-                          'Assets:US:Bank:Checking3'],
-                         [error.entry.account for error in errors])
+        self.assertEqual(
+            ["Assets:US:Bank:Checking2", "Assets:US:Bank:Checking3"],
+            [error.entry.account for error in errors],
+        )
 
     @loader.load_doc(expect_errors=True)
     def test_validate_open_close__close_unopened(self, entries, _, options_map):
@@ -62,8 +65,9 @@ class TestValidateOpenClose(cmptest.TestCase):
         2014-03-01 close Assets:US:Bank:Checking1
         """
         errors = validation.validate_open_close(entries, options_map)
-        self.assertEqual(['Assets:US:Bank:Checking1'],
-                         [error.entry.account for error in errors])
+        self.assertEqual(
+            ["Assets:US:Bank:Checking1"], [error.entry.account for error in errors]
+        )
 
     @loader.load_doc(expect_errors=True)
     def test_validate_open_close__ordering(self, entries, _, options_map):
@@ -72,12 +76,12 @@ class TestValidateOpenClose(cmptest.TestCase):
         2014-02-01 close Assets:US:Bank:Checking1
         """
         errors = validation.validate_open_close(entries, options_map)
-        self.assertEqual(['Assets:US:Bank:Checking1'],
-                         [error.entry.account for error in errors])
+        self.assertEqual(
+            ["Assets:US:Bank:Checking1"], [error.entry.account for error in errors]
+        )
 
 
 class TestValidateDuplicateBalances(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate_duplicate_balances(self, entries, _, options_map):
         """
@@ -105,12 +109,12 @@ class TestValidateDuplicateBalances(cmptest.TestCase):
         2014-03-05 balance Assets:US:Bank:Checking2  100 USD
         """
         errors = validation.validate_duplicate_balances(entries, options_map)
-        self.assertEqual([datetime.date(2014, 3, 1)],
-                         [error.entry.date for error in errors])
+        self.assertEqual(
+            [datetime.date(2014, 3, 1)], [error.entry.date for error in errors]
+        )
 
 
 class TestValidateDuplicateCommodities(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate_duplicate_commodities(self, entries, _, options_map):
         """
@@ -122,12 +126,13 @@ class TestValidateDuplicateCommodities(cmptest.TestCase):
         2014-01-06 commodity HOOL
         """
         errors = validation.validate_duplicate_commodities(entries, options_map)
-        self.assertEqual([datetime.date(2014, 1, 5), datetime.date(2014, 1, 6)],
-                         [error.entry.date for error in errors])
+        self.assertEqual(
+            [datetime.date(2014, 1, 5), datetime.date(2014, 1, 6)],
+            [error.entry.date for error in errors],
+        )
 
 
 class TestValidateActiveAccounts(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate_active_accounts(self, entries, _, options_map):
         """
@@ -163,7 +168,8 @@ class TestValidateActiveAccounts(cmptest.TestCase):
         """
         errors = validation.validate_active_accounts(entries, options_map)
 
-        self.assertEqualEntries("""
+        self.assertEqualEntries(
+            """
 
         2014-02-01 * "Invalid before"
           Assets:Temporary           1 USD
@@ -180,12 +186,19 @@ class TestValidateActiveAccounts(cmptest.TestCase):
           Assets:Temporary           1 USD
           Equity:Opening-Balances   -1 USD
 
-        """, [error.entry for error in errors])
+        """,
+            [error.entry for error in errors],
+        )
 
-        self.assertTrue(all(
-            (re.search('inactive.*Assets:Temporary', error.message) or
-             re.search('unknown.*Equity:ImUnknown', error.message))
-            for error in errors))
+        self.assertTrue(
+            all(
+                (
+                    re.search("inactive.*Assets:Temporary", error.message)
+                    or re.search("unknown.*Equity:ImUnknown", error.message)
+                )
+                for error in errors
+            )
+        )
 
     @loader.load_doc(expect_errors=True)
     def test_validate_active_accounts__unopened(self, entries, _, options_map):
@@ -196,8 +209,10 @@ class TestValidateActiveAccounts(cmptest.TestCase):
         """
         errors = validation.validate_active_accounts(entries, options_map)
         self.assertEqual(2, len(errors))
-        self.assertEqual([validation.ValidationError, validation.ValidationError],
-                         list(map(type, errors)))
+        self.assertEqual(
+            [validation.ValidationError, validation.ValidationError],
+            list(map(type, errors)),
+        )
 
     @loader.load_doc()
     def test_validate_balance_after_close(self, entries, _, options_map):
@@ -210,7 +225,6 @@ class TestValidateActiveAccounts(cmptest.TestCase):
 
 
 class TestValidateCurrencyConstraints(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate_currency_constraints(self, entries, _, options_map):
         """
@@ -250,36 +264,59 @@ class TestValidateCurrencyConstraints(cmptest.TestCase):
         """
         errors = validation.validate_currency_constraints(entries, options_map)
 
-        self.assertEqualEntries([entry for entry in entries
-                                 if (isinstance(entry, data.Transaction) and
-                                     entry.tags and
-                                     'expected' in entry.tags)],
-                                [error.entry for error in errors])
+        self.assertEqualEntries(
+            [
+                entry
+                for entry in entries
+                if (
+                    isinstance(entry, data.Transaction)
+                    and entry.tags
+                    and "expected" in entry.tags
+                )
+            ],
+            [error.entry for error in errors],
+        )
 
 
 class TestValidateDocumentPaths(cmptest.TestCase):
-
     def test_validate_documents_paths(self):
         date = datetime.date(2014, 3, 3)
-        meta = data.new_metadata('<validation_test>', 0)
-        entries = [data.Document(meta, date, 'Assets:Account1',
-                                 "/abs/path/to/something.pdf",
-                                 data.EMPTY_SET, data.EMPTY_SET),
-                   data.Document(meta, date, 'Assets:Account2',
-                                 "relative/something.pdf",
-                                 data.EMPTY_SET, data.EMPTY_SET),
-                   data.Document(meta, date, 'Assets:Account2',
-                                 "../something.pdf",
-                                 data.EMPTY_SET, data.EMPTY_SET),
-                   data.Document(meta, date, 'Assets:Account2',
-                                 "", data.EMPTY_SET, data.EMPTY_SET)]
+        meta = data.new_metadata("<validation_test>", 0)
+        entries = [
+            data.Document(
+                meta,
+                date,
+                "Assets:Account1",
+                os.path.join(tempfile.gettempdir(), "something.pdf"),
+                data.EMPTY_SET,
+                data.EMPTY_SET,
+            ),
+            data.Document(
+                meta,
+                date,
+                "Assets:Account2",
+                "relative/something.pdf",
+                data.EMPTY_SET,
+                data.EMPTY_SET,
+            ),
+            data.Document(
+                meta,
+                date,
+                "Assets:Account2",
+                "../something.pdf",
+                data.EMPTY_SET,
+                data.EMPTY_SET,
+            ),
+            data.Document(
+                meta, date, "Assets:Account2", "", data.EMPTY_SET, data.EMPTY_SET
+            ),
+        ]
         errors = validation.validate_documents_paths(entries, {})
-        self.assertEqual(3, len(errors))
-        self.assertEqual({'Assets:Account2'}, set(error.entry.account for error in errors))
+        self.assertEqual(3, len(errors), errors)
+        self.assertEqual({"Assets:Account2"}, set(error.entry.account for error in errors))
 
 
 class TestValidateDataTypes(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate_data_types(self, entries, errors, options_map):
         """
@@ -296,7 +333,6 @@ class TestValidateDataTypes(cmptest.TestCase):
 
 
 class TestValidateCheckTransactionBalances(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate_check_transaction_balances(self, entries, errors, options_map):
         """
@@ -309,7 +345,6 @@ class TestValidateCheckTransactionBalances(cmptest.TestCase):
 
 
 class TestValidate(cmptest.TestCase):
-
     @loader.load_doc(expect_errors=True)
     def test_validate(self, entries, errors, options_map):
         """
@@ -335,15 +370,14 @@ class TestValidate(cmptest.TestCase):
         validation_errors = validation.validate(entries, options_map)
 
         self.assertEqual(2, len(errors))
-        self.assertRegex(errors[0].message, 'No position matches')
-        self.assertRegex(errors[1].message, 'Invalid currency')
+        self.assertRegex(errors[0].message, "No position matches")
+        self.assertRegex(errors[1].message, "Invalid currency")
 
         self.assertEqual(1, len(validation_errors))
-        self.assertRegex(validation_errors[0].message, 'Invalid currency')
+        self.assertRegex(validation_errors[0].message, "Invalid currency")
 
 
 class TestValidateTolerances(cmptest.TestCase):
-
     @loader.load_doc()
     def test_tolerance_implicit_integral(self, entries, errors, options_map):
         """
@@ -419,5 +453,5 @@ class TestValidateTolerances(cmptest.TestCase):
     #     self.assertFalse(errors)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

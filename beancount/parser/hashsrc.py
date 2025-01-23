@@ -1,6 +1,6 @@
-"""Compute a hash of the source files in order to warn when the source goes out of date.
-"""
-__copyright__ = "Copyright (C) 2015-2016  Martin Blais"
+"""Compute a hash of the source files in order to warn when the source goes out of date."""
+
+__copyright__ = "Copyright (C) 2015-2017, 2019-2020, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import argparse
@@ -10,21 +10,21 @@ import types
 import warnings
 from os import path
 
-
 # List of input source files we should check against.
 #
 # Note: Prefer not to include the generated source files because they will
 # differ between platforms and versions of Flex/Bison.
 PARSER_SOURCE_FILES = [
-    'lexer.l',
-    'grammar.y',
-    'decimal.h',
-    'decimal.c',
-    'macros.h',
-    'parser.h',
-    'parser.c',
-    'tokens.h',
+    "lexer.l",
+    "grammar.y",
+    "decimal.h",
+    "decimal.c",
+    "macros.h",
+    "parser.h",
+    "parser.c",
+    "tokens.h",
 ]
+
 
 def hash_parser_source_files():
     """Compute a unique hash of the parser's Python code in order to bake that into
@@ -41,7 +41,7 @@ def hash_parser_source_files():
         fullname = path.join(path.dirname(__file__), filename)
         if not path.exists(fullname):
             return None
-        with open(fullname, 'rb') as file:
+        with open(fullname, "rb") as file:
             md5.update(file.read())
     # Note: Prepend a character in front of the hash because under Windows MSDEV
     # removes escapes, and if the hash starts with a number it fails to
@@ -63,27 +63,32 @@ def check_parser_source_files(parser_module: types.ModuleType):
         return
     if parser_module.SOURCE_HASH and parser_module.SOURCE_HASH != parser_source_hash:
         warnings.warn(
-            ("The Beancount parser C extension module is out-of-date ('{}' != '{}'). "
-             "You need to rebuild.").format(parser_module.SOURCE_HASH, parser_source_hash))
+            (
+                "The Beancount parser C extension module is out-of-date ('{}' != '{}'). "
+                "You need to rebuild."
+            ).format(parser_module.SOURCE_HASH, parser_source_hash)
+        )
 
 
 def gen_include():
     """Generate an include file for the parser source hash."""
-    return textwrap.dedent("""\
+    return textwrap.dedent(
+        """\
       #ifndef __BEANCOUNT_PARSER_PARSE_SOURCE_HASH_H__
       #define __BEANCOUNT_PARSER_PARSE_SOURCE_HASH_H__
 
       #define PARSER_SOURCE_HASH {source_hash}
 
       #endif // __BEANCOUNT_PARSER_PARSE_SOURCE_HASH_H__
-    """.format(source_hash=hash_parser_source_files()))
+    """.format(source_hash=hash_parser_source_files())
+    )
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.strip())
-    args = parser.parse_args()
+    _args = parser.parse_args()
     print(gen_include())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

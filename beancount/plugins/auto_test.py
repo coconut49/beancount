@@ -1,4 +1,4 @@
-__copyright__ = "Copyright (C) 2017  Martin Blais"
+__copyright__ = "Copyright (C) 2017, 2019, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import unittest
@@ -7,7 +7,6 @@ from beancount import loader
 
 
 class TestAuto(unittest.TestCase):
-
     @loader.load_doc()
     def test_plugins_auto(self, entries, _, options_map):
         """
@@ -19,5 +18,5 @@ class TestAuto(unittest.TestCase):
         """
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

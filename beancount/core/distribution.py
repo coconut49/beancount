@@ -1,6 +1,6 @@
-"""A simple accumulator for data about a mathematical distribution.
-"""
-__copyright__ = "Copyright (C) 2015-2017  Martin Blais"
+"""A simple accumulator for data about a mathematical distribution."""
+
+__copyright__ = "Copyright (C) 2015-2017, 2021, 2024  Martin Blais"
 __license__ = "GNU GPLv2"
 
 import collections
@@ -10,6 +10,7 @@ class Distribution:
     """A class that computes a histogram of integer values. This is used to compute
     a length that will cover at least some decent fraction of the samples.
     """
+
     def __init__(self):
         self.hist = collections.defaultdict(int)
 
@@ -28,6 +29,15 @@ class Distribution:
           value: A value of the function.
         """
         self.hist[value] += 1
+
+    def update_from(self, other):
+        """Add samples from the other distribution to this one.
+
+        Args:
+          other: Another distribution.
+        """
+        for value, count in other.hist.items():
+            self.hist[value] += count
 
     def min(self):
         """Return the minimum value seen in the distribution.
